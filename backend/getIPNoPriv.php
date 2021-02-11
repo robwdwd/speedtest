@@ -2,6 +2,9 @@
 
 /*
  * This script detects the client's IP address and fetches ISP info from ipinfo.io/
+ *
+ * This one ignores private IP addresses for clients in proxy headers.
+ *
  * Output from this script is a JSON string composed of 2 objects: a string called
  * processedString which contains the combined IP, ISP, Contry and distance as it can
  * be presented to the user; and an object called rawIspInfo which contains the raw
@@ -17,14 +20,7 @@ define('SERVER_LOCATION_CACHE_FILE', 'getIP_serverLocation.php');
 
 require_once 'ip_utils.php';
 
-$ip = getClientIp();
-
-$localIpInfo = getLocalOrPrivateIpInfo($ip);
-// local ip, no need to fetch further information
-if (is_string($localIpInfo)) {
-    sendResponse($ip, $localIpInfo);
-    exit;
-}
+$ip = getClientIpNoPriv();
 
 if (!isset($_GET['isp'])) {
     sendResponse($ip);
