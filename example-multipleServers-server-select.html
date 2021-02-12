@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <link rel="shortcut icon" href="favicon.ico">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no" />
+    <title>LibreSpeed Example</title>
+    <script type="text/javascript" src="speedtest.js"></script>
+    <script type="text/javascript">
+        //LIST OF TEST SERVERS. See documentation for details if needed
+        var SPEEDTEST_SERVERS = [{ //this is my demo server, remove it
+                name: "Speedtest Demo Server (Helsinki)", //user friendly name for the server
+                server: "//fi.openspeed.org/", //URL to the server. // at the beginning will be replaced with http:// or https:// automatically
+                dlURL: "garbage.php", //path to download test on this server (garbage.php or replacement)
+                ulURL: "empty.php", //path to upload test on this server (empty.php or replacement)
+                pingURL: "empty.php", //path to ping/jitter test on this server (empty.php or replacement)
+                getIpURL: "getIP.php" //path to getIP on this server (getIP.php or replacement)
+            },
+            { //this is my demo server, remove it
+                name: "Old Speedtest Demo Server",
+                server: "//mpotdemo.fdossena.com/",
+                dlURL: "garbage.php",
+                ulURL: "empty.php",
+                pingURL: "empty.php",
+                getIpURL: "getIP.php"
+            }
+            //add other servers here, comma separated
+        ];
+
+
+        //INITIALIZE SPEEDTEST
+        var s = new Speedtest(); //create speedtest object
+
+        s.onupdate = function(data) { //callback to update data in UI
+            I("ip").textContent = "Your IP Address: " + data.clientIp;
+            I("dlText").textContent = (data.testState == 1 && data.dlStatus == 0) ? "..." : data.dlStatus;
+            I("ulText").textContent = (data.testState == 3 && data.ulStatus == 0) ? "..." : data.ulStatus;
+            I("pingText").textContent = data.pingStatus;
+            I("jitText").textContent = data.jitterStatus;
+        }
+        s.onend = function(aborted) { //callback for test ended/aborted
+
+            I("startStopBtn").className = "";
+            I("server").disabled = false;
+            if (aborted) { //if the test was aborted, clear the UI and prepare for new test
+                initUI();
+            }
+        }
+
+        function selectServer() { //called after loading server list
+            s.selectServer(function(server) { //run server selection. When the server has been selected, display it in the UI
+                I("startStopBtn").style.display = ""; //show start/stop button again
+                I("serverArea").style.display = "";
+                I("loading").style.display = "none";
+                for (var i = 0; i < SPEEDTEST_SERVERS.length; i++) {
+                    if (SPEEDTEST_SERVERS[i].pingT == -1) continue;
+                    var option = document.createElement("option");
+                    option.value = i;
+                    option.textContent = SPEEDTEST_SERVERS[i].name;
+                    if (SPEEDTEST_SERVERS[i] === server) option.selected = true;
+                    I("server").appendChild(option);
+                }
+            });
+        }
+
+        function loadServers() { //called when the page is fully loaded
+            I("startStopBtn").style.display = "none"; //hide start/stop button during server selection
+            I("serverArea").style.display = "none";
+            if (typeof SPEEDTEST_SERVERS === "string") {
+                //load servers from url
+                s.loadServerList(SPEEDTEST_SERVERS, function(servers) {
+                    //list loaded
+                    SPEEDTEST_SERVERS = servers;
+                    selectServer();
+                });
+            } else {
+                //hardcoded list of servers, already loaded
+                s.addTestPoints(SPEEDTEST_SERVERS);
+                selectServer();
+            }
+
+        }
+
+
+
+        function startStop() { //start/stop button pressed
+            if (s.getState() == 3) {
+                //speedtest is running, abort
+                s.abort();
+
+                I("startStopBtn").className = "";
+                I("server").disabled = false;
+            } else {
+                //test is not running, begin
+                s.start();
+
+                I("startStopBtn").className = "running";
+                I("server").disabled = true;
+            }
+        }
+
+        //function to (re)initialize UI
+        function initUI() {
+            I("dlText").textContent = "";
+            I("ulText").textContent = "";
+            I("pingText").textContent = "";
+            I("jitText").textContent = "";
+            I("ip").textContent = "";
+        }
+
+        function I(id) {
+            return document.getElementById(id);
+        }
+    </script>
+
+    <style type="text/css">
+        html,
+        body {
+            border: none;
+            padding: 0;
+            margin: 0;
+            background: #FFFFFF;
+            color: #202020;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+        }
+
+        h1 {
+            color: #404040;
+            font-size: 3em;
+        }
+
+        /* Reset Select */
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            -ms-appearance: none;
+            appearance: none;
+            outline: 0;
+            box-shadow: none;
+            border: 0 !important;
+            background: #dedede;
+            background-image: none;
+        }
+
+        /* Remove IE arrow */
+        select::-ms-expand {
+            display: none;
+        }
+
+        /* Custom Select */
+        .select {
+            position: relative;
+            display: flex;
+            width: 25em;
+            height: 2.5em;
+            line-height: 2.5;
+            background: #dedede;
+            overflow: hidden;
+            border-radius: .25em;
+        }
+
+        select {
+            flex: 1;
+            padding: 0 .5em;
+            color: #000;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        /* Arrow */
+        .select::after {
+            content: '\25BC';
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 0 1em;
+            background: #cccccc;
+            cursor: pointer;
+            pointer-events: none;
+            -webkit-transition: .25s all ease;
+            -o-transition: .25s all ease;
+            transition: .25s all ease;
+        }
+
+        /* Transition */
+        .select:hover::after {
+            color: #888888;
+        }
+
+        .select select[disabled] {
+            color: rgba(0, 0, 0, .3);
+        }
+
+        .select select[disabled]::after {
+            color: rgba(0, 0, 0, .1);
+        }
+
+
+        #startStopBtn {
+            color: #000 !important;
+            text-decoration: none;
+            background: #00d7bd;
+            margin: 0;
+            padding: 20px 20px 20px 20px;
+            border-radius: 10px;
+            display: inline-block;
+            border: none;
+            font-family: monospace;
+            font-size: 25px;
+            transition: all 0.4s ease 0s;
+        }
+
+        #startStopBtn.running {
+            background-color: #ef476f;
+            color: #fff !important;
+        }
+
+        #startStopBtn:hover {
+            letter-spacing: 4px;
+            -webkit-box-shadow: 0px 5px 40px -10px rgba(0, 0, 0, 0.57);
+            -moz-box-shadow: 0px 5px 40px -10px rgba(0, 0, 0, 0.57);
+            box-shadow: 5px 40px -10px rgba(0, 0, 0, 0.57);
+            transition: all 0.4s ease 0s;
+        }
+
+        #startStopBtn:before {
+            content: "Start";
+        }
+
+        #startStopBtn.running:before {
+            content: "Abort";
+        }
+
+        #serverArea {
+            margin-top: 1em;
+            margin-bottom: 1em;
+        }
+
+
+        #heading {
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            color: #404040;
+            font-size: 2em;
+            font-weight: strong;
+
+
+        }
+
+        #test {
+            margin-top: 2em;
+            margin-bottom: 12em;
+        }
+
+        div.testArea {
+            display: inline-block;
+            width: 14em;
+            height: 9em;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        div.testName {
+            position: absolute;
+            top: 0.1em;
+            left: 0;
+            width: 100%;
+            font-size: 1.4em;
+            z-index: 9;
+        }
+
+        div.meterText {
+            position: absolute;
+            bottom: 1.5em;
+            left: 0;
+            width: 100%;
+            font-size: 2.5em;
+            z-index: 9;
+        }
+
+        #dlText {
+            color: #6060AA;
+        }
+
+        #ulText {
+            color: #309030;
+        }
+
+        #pingText,
+        #jitText {
+            color: #AA6060;
+        }
+
+        div.meterText:empty:before {
+            color: #505050 !important;
+            content: "0.00";
+        }
+
+        div.unit {
+            position: absolute;
+            bottom: 2em;
+            left: 0;
+            width: 100%;
+            z-index: 9;
+        }
+
+        div.testGroup {
+            display: inline-block;
+        }
+
+        @media all and (max-width:65em) {
+            body {
+                font-size: 1.5vw;
+            }
+        }
+
+        @media all and (max-width:40em) {
+            body {
+                font-size: 0.8em;
+            }
+
+            div.testGroup {
+                display: block;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="heading">
+        LibreSpeed Example
+    </div>
+
+    <div id="serverArea">
+        <div class="select">
+            <select id="server" onchange="s.setSelectedServer(SPEEDTEST_SERVERS[this.value])"></select>
+        </div>
+    </div>
+
+    <div id="startStopBtn" onclick="startStop()"></div>
+
+    <div id="loading">Selecting closest server...</div>
+
+    <div id="test">
+        <div class="testGroup">
+            <div class="testArea">
+                <div class="testName">Download</div>
+                <div id="dlText" class="meterText"></div>
+                <div class="unit">Mbps</div>
+            </div>
+            <div class="testArea">
+                <div class="testName">Upload</div>
+                <div id="ulText" class="meterText"></div>
+                <div class="unit">Mbps</div>
+            </div>
+        </div>
+        <div class="testGroup">
+            <div class="testArea">
+                <div class="testName">Ping</div>
+                <div id="pingText" class="meterText"></div>
+                <div class="unit">ms</div>
+            </div>
+            <div class="testArea">
+                <div class="testName">Jitter</div>
+                <div id="jitText" class="meterText"></div>
+                <div class="unit">ms</div>
+            </div>
+        </div>
+        <div id="ipArea">
+            <span id="ip"></span>
+        </div>
+    </div>
+    <a href="https://github.com/librespeed/speedtest">Source code</a>
+    <script type="text/javascript">
+        initUI();
+        loadServers();
+    </script>
+</body>
+
+</html>
